@@ -1,0 +1,59 @@
+-- Comentario para probar Git
+ALTER PROCEDURE [dbo].[ActualizarMasivoGPSDataFlag]
+(
+    @DriverTripID INT,
+    @GPSDataTime VARCHAR(23)
+)
+AS
+BEGIN
+    -- Imprimir los valores de los parámetros
+    PRINT 'DriverTripID: ' + CONVERT(VARCHAR(10), @DriverTripID)
+    PRINT 'GPSDataTime: ' + @GPSDataTime
+
+    -- Declarar variables locales
+    DECLARE @Speed INT;
+    DECLARE @HDOP INT;
+    
+    -- Obtener valores de configuración
+    SELECT @Speed = Speed, @HDOP = HDOP FROM dbo.Settings;
+
+    -- Contar el número de registros que cumplen los criterios
+    DECLARE @RecordCount INT;
+    SELECT @RecordCount = COUNT(*)
+    FROM dbo.GPSDataTest
+    WHERE DriverTripID = @DriverTripID
+    AND GPSDataTime = @GPSDataTime
+    AND isOnGeoTabServer = 0;
+
+    -- Manejar la situación según el número de registros
+    IF @RecordCount = 1
+    BEGIN
+        -- Obtener el valor de Flag
+        DECLARE @Flag INT;
+        SELECT @Flag = Flag
+        FROM dbo.GPSDataTest
+        WHERE DriverTripID = @DriverTripID
+        AND GPSDataTime = @GPSDataTime
+        AND isOnGeoTabServer = 0;
+
+        -- Actualizar el registro en función del valor de Flag
+        UPDATE dbo.GPSDataTest
+        SET isOnGeoTabServer = 1
+        WHERE DriverTripID = @DriverTripID
+        AND GPSDataTime = @GPSDataTime
+        AND Flag = @Flag
+        AND (
+            (@Flag = 0)
+            OR 
+            (@Flag = 1 AND Speed > @Speed AND HDOP < @HDOP)
+            OR
+            (@Flag = 2 AND isIgnitionOn = 0)
+        );
+    END
+    ELSE
+    BEGIN
+        -- Manejar la situación cuando hay más de un registro o ningún registro
+        -- Puedes lanzar una excepción, imprimir un mensaje, etc.
+        PRINT 'ERROR: Se encontraron ' + CONVERT(VARCHAR(10), @RecordCount) + ' registros.';
+    END;
+END;
