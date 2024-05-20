@@ -1,4 +1,5 @@
 -- Comentario para probar Git
+-- Comentario para cambiar un archivo desde GitHub
 ALTER PROCEDURE [dbo].[ActualizarMasivoGPSDataFlag]
 (
     @DriverTripID INT,
